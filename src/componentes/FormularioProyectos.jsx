@@ -4,11 +4,15 @@ import axios from "axios";
 import { db, deleteDoc, doc } from '../firebase';
 import { collection, addDoc, onSnapshot } from "firebase/firestore";
 
+
 // Componente para el formulario de proyectos
 function FormularioProyectos({ addProyecto }) {
     const [form, setForm] = useState({ nombre: '', descripcion: '' });
     const [validator] = useState(new SimpleReactValidator());
     const [error, setError] = useState(null);
+    
+    //Estado para controlar el envío
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -18,6 +22,7 @@ function FormularioProyectos({ addProyecto }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (validator.allValid()) {
+            setIsSubmitting(true);
             try {
                 const response = await axios.get('https://jsonplaceholder.typicode.com/todos/1');
                 const additionalData = response.data;
@@ -32,6 +37,8 @@ function FormularioProyectos({ addProyecto }) {
             } catch (error) {
                 console.error("Error al agregar proyecto:", error);
                 setError("Error al agregar proyecto");
+            } finally{
+                setIsSubmitting(false);
             }
         } else {
             validator.showMessages();
@@ -47,6 +54,7 @@ function FormularioProyectos({ addProyecto }) {
                     name="nombre"
                     value={form.nombre}
                     onChange={handleChange}
+                    disabled={isSubmitting} //Deshabilita mientras se envía
                 />
                 {validator.message('nombre', form.nombre, 'required|alpha')}
             </div>
@@ -57,10 +65,12 @@ function FormularioProyectos({ addProyecto }) {
                     name="descripcion"
                     value={form.descripcion}
                     onChange={handleChange}
+                    disabled={isSubmitting} //Deshabilita mientras se envía
                 />
                 {validator.message('descripcion', form.descripcion, 'required|min:10')}
             </div>
-            <button type="submit">Agregar Proyecto</button>
+            <button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Agregando...' : 'Agregar Proyecto'}</button>
             {error && <p style={{ color: 'red' }}>{error}</p>}
         </form>
     );
