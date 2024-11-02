@@ -34,6 +34,7 @@ function FormularioProyectos({ addProyecto }) {
                 setForm({ nombre: '', descripcion: '' });
                 validator.hideMessages();
                 setError(null);
+                console.log("Proyecto agregado correctamente");
             } catch (error) {
                 console.error("Error al agregar proyecto:", error);
                 setError("Error al agregar proyecto");
