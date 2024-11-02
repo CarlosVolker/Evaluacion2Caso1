@@ -1,15 +1,14 @@
-import React, { useState} from "react";
+import React, { useState, useEffect } from "react";
 import SimpleReactValidator from "simple-react-validator";
 import axios from "axios";
 import { db } from '../firebase';
-import { collection, addDoc, getDocs } from "firebase/firestore";
-import { useEffect } from "react";
+import { collection, addDoc, onSnapshot } from "firebase/firestore";
 
-
-//Componente para el formulario de proyectos
+// Componente para el formulario de proyectos
 function FormularioProyectos({ addProyecto }) {
     const [form, setForm] = useState({ nombre: '', descripcion: '' });
     const [validator] = useState(new SimpleReactValidator());
+    const [error, setError] = useState(null);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -20,20 +19,20 @@ function FormularioProyectos({ addProyecto }) {
         e.preventDefault();
         if (validator.allValid()) {
             try {
-                // Solicitud a una API simulada (jsonplaceholder) antes de guardar el proyecto
                 const response = await axios.get('https://jsonplaceholder.typicode.com/todos/1');
-                console.log("Datos de la API", response.data);
-                
                 const additionalData = response.data;
-                const proyectoConDatos = {...form,additionalInfo: additionalData.title};  
+                const proyectoConDatos = { ...form, additionalInfo: additionalData.title };
 
                 await addDoc(collection(db, "proyectos"), proyectoConDatos);
-                
                 addProyecto(proyectoConDatos);
+
+                // Limpiar el formulario
                 setForm({ nombre: '', descripcion: '' });
                 validator.hideMessages();
+                setError(null);
             } catch (error) {
                 console.error("Error al agregar proyecto:", error);
+                setError("Error al agregar proyecto");
             }
         } else {
             validator.showMessages();
@@ -45,38 +44,38 @@ function FormularioProyectos({ addProyecto }) {
             <div>
                 <label>Nombre Proyecto:</label>
                 <input
-                type="text"
-                name="nombre"
-                value={form.nombre}
-                onChange={handleChange}
+                    type="text"
+                    name="nombre"
+                    value={form.nombre}
+                    onChange={handleChange}
                 />
-                {/*Valida que el nombre sea obligatorio */}
                 {validator.message('nombre', form.nombre, 'required|alpha')}
             </div>
             <div>
                 <label>Descripción:</label>
                 <input
-                type="text"
-                name="descripcion"
-                value={form.descripcion}
-                onChange={handleChange}
+                    type="text"
+                    name="descripcion"
+                    value={form.descripcion}
+                    onChange={handleChange}
                 />
-                {/*Valida que la descripción sea obligatoria y tenga un mínimo de 10 caracteres */}
-                {validator.message('descripcion', form.descripcion, 'required|min:10')} 
+                {validator.message('descripcion', form.descripcion, 'required|min:10')}
             </div>
             <button type="submit">Agregar Proyecto</button>
+            {error && <p style={{ color: 'red' }}>{error}</p>}
         </form>
     );
 }
 
-//Componente para listar los proyectos agregados
+
+// Componente para listar los proyectos agregados
 function ListaProyectos({ proyectos }) {
     return (
         <React.Fragment>
             {proyectos.length > 0 ? (
                 <ul>
                     {proyectos.map((proyecto) => (
-                        <li key={proyecto.nombre}>
+                        <li key={proyecto.id}>
                             {proyecto.nombre} - {proyecto.descripcion}
                         </li>
                     ))}
@@ -85,24 +84,22 @@ function ListaProyectos({ proyectos }) {
                 <p>La lista de Proyectos está vacía.</p>
             )}
         </React.Fragment>
-    )
+    );
 }
 
 function ProyectManagementApp() {
     const [proyectos, setProyectos] = useState([]);
     const [showForm, setShowForm] = useState(false);
 
-    const addProyecto = (proyecto) => {
-        setProyectos([...proyectos, proyecto])
-    };
-    const loadProyectos = async () => {
-        const proyectosSnapshot = await getDocs(collection(db, "proyectos"));
-        const proyectosList = proyectosSnapshot.docs.map(doc => doc.data());
-        setProyectos(proyectosList);
-    };
-    
     useEffect(() => {
-        loadProyectos();
+        // Escuchar los cambios en la colección de proyectos en tiempo real
+        const unsubscribe = onSnapshot(collection(db, "proyectos"), (snapshot) => {
+            const proyectosList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setProyectos(proyectosList);
+        });
+
+        // Detener la escucha cuando el componente se desmonta
+        return () => unsubscribe();
     }, []);
 
     return (
@@ -112,7 +109,7 @@ function ProyectManagementApp() {
                 {showForm ? 'Ocultar formulario' : 'Agregar Proyecto'}
             </button>
 
-            {showForm && <FormularioProyectos addProyecto={addProyecto} />}
+            {showForm && <FormularioProyectos addProyecto={(proyecto) => setProyectos([...proyectos, proyecto])} />}
             <ListaProyectos proyectos={proyectos} />
         </div>
     );
