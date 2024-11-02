@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import SimpleReactValidator from "simple-react-validator";
 import axios from "axios";
-import { db } from '../firebase';
+import { db, deleteDoc, doc } from '../firebase';
 import { collection, addDoc, onSnapshot } from "firebase/firestore";
 
 // Componente para el formulario de proyectos
@@ -24,7 +24,6 @@ function FormularioProyectos({ addProyecto }) {
                 const proyectoConDatos = { ...form, additionalInfo: additionalData.title };
 
                 await addDoc(collection(db, "proyectos"), proyectoConDatos);
-                addProyecto(proyectoConDatos);
 
                 // Limpiar el formulario
                 setForm({ nombre: '', descripcion: '' });
@@ -69,14 +68,15 @@ function FormularioProyectos({ addProyecto }) {
 
 
 // Componente para listar los proyectos agregados
-function ListaProyectos({ proyectos }) {
+function ListaProyectos({ proyectos, deleteProyecto }) {
     return (
         <React.Fragment>
             {proyectos.length > 0 ? (
                 <ul>
-                    {proyectos.map((proyecto) => (
-                        <li key={proyecto.id}>
+                    {proyectos.map((proyecto, index) => (
+                        <li key={proyecto.id || index}>
                             {proyecto.nombre} - {proyecto.descripcion}
+                            <button onClick={() => deleteProyecto(proyecto.id)}>Eliminar</button>
                         </li>
                     ))}
                 </ul>
@@ -102,6 +102,17 @@ function ProyectManagementApp() {
         return () => unsubscribe();
     }, []);
 
+    //Funcion para eliminar un proyecto
+    const deleteProyecto = async (id) => {
+        try {
+            await deleteDoc(doc(db, "proyectos", id));
+            console.log("Proyecto eliminado correctamente");
+        } catch (error) {
+            console.error("Error al eliminar proyecto:", error);
+        }
+    };
+
+
     return (
         <div>
             <h1>Gestión de Proyectos</h1>
@@ -110,7 +121,7 @@ function ProyectManagementApp() {
             </button>
 
             {showForm && <FormularioProyectos addProyecto={(proyecto) => setProyectos([...proyectos, proyecto])} />}
-            <ListaProyectos proyectos={proyectos} />
+            <ListaProyectos proyectos={proyectos} deleteProyecto={deleteProyecto} />
         </div>
     );
 }
