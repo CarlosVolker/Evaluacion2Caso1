@@ -1,6 +1,10 @@
 import React, { useState} from "react";
 import SimpleReactValidator from "simple-react-validator";
 import axios from "axios";
+import { db } from '../firebase';
+import { collection, addDoc, getDocs } from "firebase/firestore";
+import { useEffect } from "react";
+
 
 //Componente para el formulario de proyectos
 function FormularioProyectos({ addProyecto }) {
@@ -21,7 +25,9 @@ function FormularioProyectos({ addProyecto }) {
                 console.log("Datos de la API", response.data);
                 
                 const additionalData = response.data;
-                const proyectoConDatos = {...form,additionalInfo: additionalData.title};  // Agrega información adicional, ejemplo 'title'
+                const proyectoConDatos = {...form,additionalInfo: additionalData.title};  
+
+                await addDoc(collection(db, "proyectos"), proyectoConDatos);
                 
                 addProyecto(proyectoConDatos);
                 setForm({ nombre: '', descripcion: '' });
@@ -89,6 +95,15 @@ function ProyectManagementApp() {
     const addProyecto = (proyecto) => {
         setProyectos([...proyectos, proyecto])
     };
+    const loadProyectos = async () => {
+        const proyectosSnapshot = await getDocs(collection(db, "proyectos"));
+        const proyectosList = proyectosSnapshot.docs.map(doc => doc.data());
+        setProyectos(proyectosList);
+    };
+    
+    useEffect(() => {
+        loadProyectos();
+    }, []);
 
     return (
         <div>
@@ -104,8 +119,3 @@ function ProyectManagementApp() {
 }
 
 export default ProyectManagementApp;
-
-
-
-
-
