@@ -6,7 +6,7 @@ import { collection, addDoc, onSnapshot } from "firebase/firestore";
 
 
 // Componente para el formulario de proyectos
-function FormularioProyectos({ addProyecto }) {
+function FormularioProyectos() {
     const [form, setForm] = useState({ nombre: '', descripcion: '' });
     const [validator] = useState(new SimpleReactValidator());
     const [error, setError] = useState(null);
@@ -108,8 +108,6 @@ function ProyectManagementApp() {
             const proyectosList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setProyectos(proyectosList);
         });
-
-        // Detener la escucha cuando el componente se desmonta
         return () => unsubscribe();
     }, []);
 

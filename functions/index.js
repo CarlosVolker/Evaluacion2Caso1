@@ -2,7 +2,7 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 admin.initializeApp();
 
-exports.deleteProyecto = functions.https.onCall(async (data, context) => {
+exports.deleteProyecto = functions.https.onCall(async (data) => {
     const projectId = data.id;
     try {
         await admin.firestore().collection("proyectos").doc(projectId).delete();
